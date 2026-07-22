@@ -1,15 +1,14 @@
-// app/layout.tsx
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Sushi La Reina — Fusión Japonesa en La Reina',
-  description: 'Rolls, Nikkei, Ceviches y mucho más. Retiro y delivery en La Reina y comunas vecinas. Lynch Sur #17, La Reina, Santiago.',
-  keywords: 'sushi, la reina, delivery, rolls, nikkei, ceviches, Santiago',
+  title: 'Sushi La Reina — Fusión Japonesa en La Reina, Santiago',
+  description: 'El mejor sushi de La Reina. Rolls, Nikkei, Ceviches y más. Retiro en local y delivery a La Reina, Peñalolén, Macul y comunas vecinas. Lynch Sur #17, La Reina, Santiago.',
+  keywords: 'sushi la reina, sushi delivery la reina, sushi santiago, rolls la reina, nikkei santiago, sushi peñalolén, sushi macul, delivery sushi santiago, sushi fusion santiago',
   authors: [{ name: 'Sushi La Reina' }],
   openGraph: {
-    title: 'Sushi La Reina',
-    description: 'Fusión japonesa en La Reina. Retiro y delivery.',
+    title: 'Sushi La Reina — Fusión Japonesa en La Reina',
+    description: 'Rolls, Nikkei, Ceviches y más. Retiro y delivery en La Reina y comunas vecinas.',
     url: 'https://sushilareina.cl',
     siteName: 'Sushi La Reina',
     locale: 'es_CL',
