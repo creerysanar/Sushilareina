@@ -165,20 +165,19 @@ export default function AdminPage() {
     </div>
   )
 
-  // ✅ CAMBIO 1: Agregado 'emails' en navItems después de 'bot'
   const navItems = [
-    { id: 'pedidos',     label: 'Pedidos' },
-    // { id: 'ventas',      label: 'Ventas' },  // ELIMINADO
-    { id: 'cupones',     label: 'Cupones' },
-    { id: 'productos',   label: 'Productos y Fotos' },
-    { id: 'promociones', label: 'Promociones' },
-    { id: 'descuentos',  label: 'Descuentos Celebracion' },
-    { id: 'timbres',     label: 'Tarjeta Timbres' },
-    { id: 'clientes',    label: 'Clientes' },
-    { id: 'canjear',     label: 'Canjear Premio' },
-    { id: 'bot',         label: 'Bot WhatsApp' },
-    { id: 'emails',      label: 'Emails' },  // ✅ NUEVO
-    { id: 'contenido',   label: 'Contenido' },
+    { id: 'pedidos',        label: 'Pedidos' },
+    { id: 'cupones',        label: 'Cupones' },
+    { id: 'productos',      label: 'Productos y Fotos' },
+    { id: 'promociones',    label: 'Promociones' },
+    { id: 'descuentos',     label: 'Descuentos Celebracion' },
+    { id: 'timbres',        label: 'Tarjeta Timbres' },
+    { id: 'modificaciones', label: 'Modificaciones' },
+    { id: 'clientes',       label: 'Clientes' },
+    { id: 'canjear',        label: 'Canjear Premio' },
+    { id: 'bot',            label: 'Bot WhatsApp' },
+    { id: 'emails',         label: 'Emails' },
+    { id: 'contenido',      label: 'Contenido' },
   ]
 
   const inputStyle = { width: '100%', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', color: '#F5F0E8', padding: '8px 12px', fontFamily: 'inherit', fontSize: '0.85rem', borderRadius: 2, outline: 'none', boxSizing: 'border-box' as const }
@@ -253,13 +252,12 @@ export default function AdminPage() {
         )}
 
         {section === 'pedidos' && <PedidosPanel orders={orders} loadData={loadData} showToast={showToast} setOrders={setOrders} />}
-        {/* ✅ ELIMINADO: {section === 'ventas' && <VentasPanel />} */}
         {section === 'cupones' && <CuponesPanel />}
         {section === 'clientes' && <ClientesPanel />}
         {section === 'bot' && <BotPanel showToast={showToast} />}
         {section === 'contenido' && <ContenidoPanel />}
-        {/* ✅ CAMBIO 2: Agregado EmailsPanel */}
         {section === 'emails' && <EmailsPanel showToast={showToast} />}
+        {section === 'modificaciones' && <ModificacionesPanel showToast={showToast} />}
 
         {/* PRODUCTOS Y FOTOS */}
         {section === 'productos' && (
@@ -734,8 +732,6 @@ function PedidosPanel({ orders, loadData, showToast, setOrders }: {
   )
 }
 
-// ─── Ventas Panel (ELIMINADO) ─────────────────────────────────────────────────
-
 // ─── Cupones Panel ────────────────────────────────────────────────────────────
 function CuponesPanel() {
   const [cupones, setCupones] = useState<any[]>([])
@@ -821,7 +817,7 @@ function CuponesPanel() {
   )
 }
 
-// ─── Contenido Panel (MODIFICADO) ────────────────────────────────────────────
+// ─── Contenido Panel ──────────────────────────────────────────────────────────
 function ContenidoPanel() {
   const [tab, setTab] = useState<'faq' | 'blog' | 'nosotros' | 'comunidad'>('faq')
   const [posts, setPosts] = useState<any[]>([])
@@ -1136,17 +1132,31 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
     showToast('Conversacion reiniciada')
   }
 
+  async function resumeConversation(convId: string) {
+    const sb = createClient()
+    await sb.from('bot_conversations').update({ paused_until: null, paused_reason: null, state: 'inicio' }).eq('id', convId)
+    setConversations(prev => prev.map(c => c.id === convId ? { ...c, paused_until: null, paused_reason: null, state: 'inicio' } : c))
+    if (selectedConv?.id === convId) {
+      setSelectedConv((prev: any) => ({ ...prev, paused_until: null, paused_reason: null, state: 'inicio' }))
+    }
+    showToast('✅ Conversación reanudada')
+  }
+
   return (
     <div>
       <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '1.6rem', fontWeight: 300, marginBottom: '1.5rem' }}>Bot WhatsApp</h1>
 
-      <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 4, padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: config.active === false ? 'rgba(155,34,38,.08)' : 'rgba(0,180,80,.08)', border: config.active === false ? '1px solid rgba(255,68,85,.2)' : '1px solid rgba(0,180,80,.2)', borderRadius: 4, padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 500, marginBottom: 4 }}>Estado del Bot</div>
-          <div style={{ fontSize: '0.75rem', color: 'rgba(245,240,232,.4)' }}>Webhook: <code style={{ color: '#C8956A' }}>/api/bot/webhook</code></div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 500, marginBottom: 4 }}>Webhook: <code style={{ color: '#C8956A' }}>/api/bot/webhook</code></div>
+          <div style={{ fontSize: '0.75rem', color: config.active === false ? '#ff4455' : '#00b450', fontWeight: 600 }}>
+            {config.active === false ? '🔴 Bot Desactivado' : '🟢 Bot Activado'}
+          </div>
         </div>
-        <div style={{ background: 'rgba(0,180,80,.15)', color: '#00b450', padding: '4px 12px', borderRadius: 2, fontSize: '0.75rem', fontWeight: 700 }}>
-          Configurado
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(245,240,232,.4)' }}>
+            {config.active === false ? 'No responde mensajes' : 'Respondiendo normalmente'}
+          </span>
         </div>
       </div>
 
@@ -1166,20 +1176,36 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
             : conversations.length === 0 ? <div style={{ color: 'rgba(245,240,232,.3)', padding: '2rem 0', fontSize: '0.85rem' }}>No hay conversaciones aun.</div>
             : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(255,255,255,.04)' }}>
-                {conversations.map(conv => (
-                  <div key={conv.id} onClick={() => loadMessages(conv)}
-                    style={{ background: selectedConv?.id === conv.id ? 'rgba(200,149,106,.12)' : '#111', padding: '0.9rem 1.25rem', cursor: 'pointer', borderLeft: selectedConv?.id === conv.id ? '3px solid #C8956A' : '3px solid transparent' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 500, fontSize: '0.88rem' }}>{conv.customer_name || conv.phone}</span>
-                      <span style={{ fontSize: '0.7rem', background: 'rgba(255,255,255,.08)', padding: '2px 8px', borderRadius: 2, color: 'rgba(245,240,232,.5)' }}>{conv.state}</span>
+                {conversations.map(conv => {
+                  const estaPausada = conv.paused_until && new Date(conv.paused_until) > new Date()
+                  return (
+                    <div key={conv.id} onClick={() => loadMessages(conv)}
+                      style={{ background: selectedConv?.id === conv.id ? 'rgba(200,149,106,.12)' : '#111', padding: '0.9rem 1.25rem', cursor: 'pointer', borderLeft: selectedConv?.id === conv.id ? '3px solid #C8956A' : '3px solid transparent', opacity: estaPausada ? 0.7 : 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontWeight: 500, fontSize: '0.88rem' }}>{conv.customer_name || conv.phone}</span>
+                        <span style={{ fontSize: '0.7rem', background: estaPausada ? 'rgba(255,68,85,.15)' : 'rgba(255,255,255,.08)', padding: '2px 8px', borderRadius: 2, color: estaPausada ? '#ff4455' : 'rgba(245,240,232,.5)' }}>
+                          {estaPausada ? '⏸️ Pausado' : conv.state}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'rgba(245,240,232,.35)' }}>
+                        <span>{conv.phone}</span>
+                        <span>{new Date(conv.last_message_at).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}</span>
+                      </div>
+                      {conv.cart?.length > 0 && <div style={{ marginTop: 4, fontSize: '0.7rem', color: '#C8956A' }}>Carrito: {conv.cart.length} producto(s)</div>}
+                      {estaPausada && (
+                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#ff4455' }}>
+                            Hasta {new Date(conv.paused_until).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}
+                          </span>
+                          <button onClick={(e) => { e.stopPropagation(); resumeConversation(conv.id) }}
+                            style={{ background: 'rgba(0,180,80,.15)', border: '1px solid rgba(0,180,80,.3)', color: '#00b450', padding: '3px 10px', borderRadius: 2, cursor: 'pointer', fontSize: '0.7rem', fontFamily: 'inherit' }}>
+                            Reanudar
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'rgba(245,240,232,.35)' }}>
-                      <span>{conv.phone}</span>
-                      <span>{new Date(conv.last_message_at).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}</span>
-                    </div>
-                    {conv.cart?.length > 0 && <div style={{ marginTop: 4, fontSize: '0.7rem', color: '#C8956A' }}>Carrito: {conv.cart.length} producto(s)</div>}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1187,10 +1213,18 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
             <div style={{ background: '#111', border: '1px solid rgba(255,255,255,.08)', borderRadius: 4, display: 'flex', flexDirection: 'column', maxHeight: 500 }}>
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{selectedConv.customer_name || selectedConv.phone}</span>
-                <button onClick={() => resetConversation(selectedConv.id)}
-                  style={{ background: 'rgba(155,34,38,.12)', border: 'none', color: '#ff6b6b', padding: '4px 10px', borderRadius: 2, cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>
-                  Reiniciar
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {selectedConv.paused_until && new Date(selectedConv.paused_until) > new Date() && (
+                    <button onClick={() => resumeConversation(selectedConv.id)}
+                      style={{ background: 'rgba(0,180,80,.15)', border: '1px solid rgba(0,180,80,.3)', color: '#00b450', padding: '4px 10px', borderRadius: 2, cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>
+                      Reanudar
+                    </button>
+                  )}
+                  <button onClick={() => resetConversation(selectedConv.id)}
+                    style={{ background: 'rgba(155,34,38,.12)', border: 'none', color: '#ff6b6b', padding: '4px 10px', borderRadius: 2, cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>
+                    Reiniciar
+                  </button>
+                </div>
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {messages.map(msg => (
@@ -1210,6 +1244,32 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
         <div style={{ maxWidth: 600 }}>
           {loading ? <div style={{ color: 'rgba(245,240,232,.3)' }}>Cargando...</div> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              
+              {/* Toggle activar/desactivar bot */}
+              <div style={{ background: config.active === false ? 'rgba(155,34,38,.08)' : 'rgba(0,180,80,.08)', border: config.active === false ? '1px solid rgba(255,68,85,.2)' : '1px solid rgba(0,180,80,.2)', borderRadius: 4, padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 4, color: config.active === false ? '#ff4455' : '#00b450' }}>
+                    {config.active === false ? '🔴 Bot Desactivado' : '🟢 Bot Activado'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(245,240,232,.4)' }}>
+                    {config.active === false
+                      ? 'El bot no responderá a ningún mensaje. Los clientes verán un mensaje de fuera de servicio.'
+                      : 'El bot está funcionando normalmente y responderá a todos los mensajes.'}
+                  </div>
+                </div>
+                <button onClick={async () => {
+                  const newActive = config.active === false ? true : false
+                  setConfig((c: any) => ({ ...c, active: newActive }))
+                  const sb = createClient()
+                  await sb.from('bot_config').upsert({ key: 'active', value: newActive }, { onConflict: 'key' })
+                  showToast(newActive ? '✅ Bot activado' : '🔴 Bot desactivado')
+                }}
+                  style={{ padding: '10px 24px', border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 700, background: config.active === false ? '#00b450' : '#ff4455', color: '#fff', whiteSpace: 'nowrap' }}>
+                  {config.active === false ? 'Activar Bot' : 'Desactivar Bot'}
+                </button>
+              </div>
+
+              {/* Tiempos de cocina */}
               <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 4, padding: '1.25rem' }}>
                 <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '1rem' }}>Tiempos de cocina</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1217,6 +1277,8 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
                   <div><label style={lbl}>Extra por producto (min)</label><input type="number" value={config.tiempos_cocina?.por_producto || 5} onChange={e => setConfig((c: any) => ({ ...c, tiempos_cocina: { ...c.tiempos_cocina, por_producto: parseInt(e.target.value) } }))} style={inp} /></div>
                 </div>
               </div>
+
+              {/* Costo de delivery */}
               <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 4, padding: '1.25rem' }}>
                 <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '1rem' }}>Costo de delivery</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1224,6 +1286,8 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
                   <div><label style={lbl}>Gratis sobre ($)</label><input type="number" value={config.costo_envio?.gratis_sobre || 25000} onChange={e => setConfig((c: any) => ({ ...c, costo_envio: { ...c.costo_envio, gratis_sobre: parseInt(e.target.value) } }))} style={inp} /></div>
                 </div>
               </div>
+
+              {/* Mensajes del bot */}
               <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 4, padding: '1.25rem' }}>
                 <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '1rem' }}>Mensajes del bot</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1231,9 +1295,11 @@ function BotPanel({ showToast }: { showToast: (msg: string) => void }) {
                   <div><label style={lbl}>Mensaje de despedida</label><input value={config.mensajes?.despedida || ''} onChange={e => setConfig((c: any) => ({ ...c, mensajes: { ...c.mensajes, despedida: e.target.value } }))} style={inp} /></div>
                 </div>
               </div>
+
               <button onClick={saveConfig} disabled={saving} style={{ background: '#1B2A4A', color: '#F5EDE8', border: 'none', padding: '12px 28px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.85rem' }}>
                 {saving ? 'Guardando...' : 'Guardar configuracion'}
               </button>
+
               <div style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 4, padding: '1rem' }}>
                 <div style={{ fontSize: '0.72rem', color: 'rgba(245,240,232,.4)', marginBottom: 8 }}>Variables de entorno necesarias en Vercel:</div>
                 {['WHATSAPP_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_VERIFY_TOKEN'].map(v => (
@@ -1307,8 +1373,6 @@ function NosotrosPanel() {
   return (
     <div>
       <h2 style={{ fontFamily: 'Georgia,serif', fontSize: '1.3rem', fontWeight: 300, marginBottom: '1.5rem' }}>👥 Quiénes Somos</h2>
-
-      {/* Historia */}
       <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 4, padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '0.75rem' }}>📖 Historia del local</div>
         <textarea value={historia} onChange={e => setHistoria(e.target.value)}
@@ -1319,8 +1383,6 @@ function NosotrosPanel() {
           {saving ? 'Guardando...' : '💾 Guardar historia'}
         </button>
       </div>
-
-      {/* Fotos del equipo */}
       <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 4, padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '0.75rem' }}>📷 Fotos del equipo</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8, marginBottom: '1rem' }}>
@@ -1398,11 +1460,9 @@ function ComunidadPanel() {
           ))}
         </div>
       </div>
-
       <div style={{ background: 'rgba(200,149,106,.08)', border: '1px solid rgba(200,149,106,.2)', borderRadius: 4, padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.78rem', color: 'rgba(245,240,232,.6)' }}>
         📱 Los clientes pueden subir fotos en: <span style={{ color: '#C8956A', fontFamily: 'monospace' }}>sushilareina.cl/comunidad</span>
       </div>
-
       {loading ? <div style={{ color: 'rgba(245,240,232,.3)', padding: '2rem 0' }}>Cargando...</div> : fotos.length === 0 ? (
         <div style={{ color: 'rgba(245,240,232,.3)', padding: '2rem 0', textAlign: 'center', fontSize: '0.85rem' }}>
           {filter === 'pending' ? 'No hay fotos pendientes de aprobación.' : 'No hay fotos aún.'}
@@ -1447,7 +1507,6 @@ function ComunidadPanel() {
   )
 }
 
-// ─── ✅ CAMBIO 3: EmailsPanel (NUEVO) ─────────────────────────────────────────
 // ─── Emails Panel ─────────────────────────────────────────────────────────────
 function EmailsPanel({ showToast }: { showToast: (msg: string) => void }) {
   const [config, setConfig] = useState({
@@ -1538,7 +1597,6 @@ function EmailsPanel({ showToast }: { showToast: (msg: string) => void }) {
       <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '1.6rem', fontWeight: 300, marginBottom: '0.5rem' }}>Configuración de Emails</h1>
       <p style={{ color: 'rgba(245,240,232,.4)', fontSize: '0.85rem', marginBottom: '2rem' }}>Ajusta los descuentos y días de cada email automático.</p>
 
-      {/* Cumpleaños */}
       <div style={{ background: '#111', border: '1px solid rgba(255,255,255,.07)', borderRadius: 4, padding: '1.25rem', marginBottom: '1rem' }}>
         <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '1rem' }}>🎂 Emails de Cumpleaños</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -1569,7 +1627,6 @@ function EmailsPanel({ showToast }: { showToast: (msg: string) => void }) {
         </div>
       </div>
 
-      {/* Reactivación */}
       <div style={{ background: '#111', border: '1px solid rgba(255,255,255,.07)', borderRadius: 4, padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '1rem' }}>🍣 Emails de Reactivación</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1606,7 +1663,6 @@ function EmailsPanel({ showToast }: { showToast: (msg: string) => void }) {
         {saving ? 'Guardando...' : '💾 Guardar configuración'}
       </button>
 
-      {/* Test de emails */}
       <div style={{ background: '#111', border: '1px solid rgba(255,255,255,.07)', borderRadius: 4, padding: '1.25rem' }}>
         <div style={{ fontSize: '0.75rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#C8956A', marginBottom: '1rem' }}>🧪 Enviar email de prueba</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
@@ -1632,6 +1688,175 @@ function EmailsPanel({ showToast }: { showToast: (msg: string) => void }) {
           {sendingTest ? 'Enviando...' : '📧 Enviar prueba'}
         </button>
       </div>
+    </div>
+  )
+}
+
+// ─── Modificaciones Panel ─────────────────────────────────────────────────────
+function ModificacionesPanel({ showToast }: { showToast: (msg: string) => void }) {
+  const [mods, setMods] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [newMod, setNewMod] = useState({ name: '', description: '', category: 'envoltura', price: 0 })
+
+  const CATEGORIAS = [
+    { id: 'envoltura', label: '🌯 Envoltura', desc: 'Cambiar el exterior del roll' },
+    { id: 'proteina',  label: '🍗 Proteína',  desc: 'Reemplazar el relleno principal' },
+    { id: 'extra',     label: '➕ Extras',    desc: 'Ingredientes adicionales' },
+    { id: 'eliminacion', label: '❌ Sin...',  desc: 'Quitar ingredientes' },
+  ]
+
+  const inp = { width: '100%', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', color: '#F5F0E8', padding: '8px 12px', fontFamily: 'inherit', fontSize: '0.85rem', borderRadius: 2, outline: 'none', boxSizing: 'border-box' as const }
+  const lbl = { display: 'block', fontSize: '0.68rem', letterSpacing: '.1em', textTransform: 'uppercase' as const, color: 'rgba(245,240,232,.6)', marginBottom: 4 }
+
+  useEffect(() => { loadMods() }, [])
+
+  async function loadMods() {
+    setLoading(true)
+    const sb = createClient()
+    const { data } = await sb.from('menu_modifications').select('*').order('sort_order')
+    setMods(data || [])
+    setLoading(false)
+  }
+
+  async function updatePrice(id: string, price: number) {
+    setSaving(id)
+    const sb = createClient()
+    await sb.from('menu_modifications').update({ price }).eq('id', id)
+    setMods(prev => prev.map(m => m.id === id ? { ...m, price } : m))
+    setSaving(null)
+    showToast('✅ Precio actualizado')
+  }
+
+  async function toggleMod(id: string, active: boolean) {
+    const sb = createClient()
+    await sb.from('menu_modifications').update({ active }).eq('id', id)
+    setMods(prev => prev.map(m => m.id === id ? { ...m, active } : m))
+    showToast(active ? 'Modificación activada' : 'Modificación desactivada')
+  }
+
+  async function addMod() {
+    if (!newMod.name) return showToast('El nombre es requerido')
+    const sb = createClient()
+    const { data, error } = await sb.from('menu_modifications').insert({
+      name: newMod.name,
+      description: newMod.description,
+      category: newMod.category,
+      price: newMod.price,
+      active: true,
+      sort_order: mods.length + 1,
+    }).select().single()
+    if (!error && data) {
+      setMods(prev => [...prev, data])
+      setNewMod({ name: '', description: '', category: 'envoltura', price: 0 })
+      setShowForm(false)
+      showToast('✅ Modificación agregada')
+    }
+  }
+
+  async function deleteMod(id: string) {
+    if (!confirm('¿Eliminar esta modificación?')) return
+    const sb = createClient()
+    await sb.from('menu_modifications').delete().eq('id', id)
+    setMods(prev => prev.filter(m => m.id !== id))
+    showToast('Modificación eliminada')
+  }
+
+  if (loading) return <div style={{ color: 'rgba(245,240,232,.3)', padding: '2rem 0' }}>Cargando...</div>
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '1.6rem', fontWeight: 300 }}>Modificaciones del Menú</h1>
+        <button onClick={() => setShowForm(!showForm)}
+          style={{ background: '#1B2A4A', color: '#F5EDE8', border: 'none', padding: '9px 20px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem' }}>
+          {showForm ? 'Cancelar' : '+ Nueva modificación'}
+        </button>
+      </div>
+      <p style={{ color: 'rgba(245,240,232,.4)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+        El bot lee estos valores en tiempo real. Cambia un precio y el bot lo aplica de inmediato.
+      </p>
+
+      {showForm && (
+        <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 4, padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: '0.75rem', color: '#C8956A', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '1rem' }}>Nueva modificación</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div>
+              <label style={lbl}>Nombre *</label>
+              <input value={newMod.name} onChange={e => setNewMod(m => ({ ...m, name: e.target.value }))}
+                placeholder="Ej: Envuelto en salmón" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Categoría</label>
+              <select value={newMod.category} onChange={e => setNewMod(m => ({ ...m, category: e.target.value }))}
+                style={{ ...inp, cursor: 'pointer' }}>
+                {CATEGORIAS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Descripción</label>
+              <input value={newMod.description} onChange={e => setNewMod(m => ({ ...m, description: e.target.value }))}
+                placeholder="Descripción opcional" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Precio ($) — 0 si es sin costo</label>
+              <input type="number" value={newMod.price} onChange={e => setNewMod(m => ({ ...m, price: parseInt(e.target.value) || 0 }))}
+                style={{ ...inp, color: '#C8956A' }} />
+            </div>
+          </div>
+          <button onClick={addMod}
+            style={{ background: '#C8956A', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600 }}>
+            Agregar modificación
+          </button>
+        </div>
+      )}
+
+      {CATEGORIAS.map(cat => {
+        const catMods = mods.filter(m => m.category === cat.id)
+        if (catMods.length === 0) return null
+        return (
+          <div key={cat.id} style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+              <span style={{ fontSize: '0.75rem', letterSpacing: '.12em', textTransform: 'uppercase', color: '#C8956A' }}>{cat.label}</span>
+              <span style={{ fontSize: '0.7rem', color: 'rgba(245,240,232,.3)' }}>— {cat.desc}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(255,255,255,.04)' }}>
+              {catMods.map(mod => (
+                <div key={mod.id} style={{ background: '#111', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', opacity: mod.active ? 1 : 0.45 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 500, marginBottom: 2 }}>{mod.name}</div>
+                    {mod.description && <div style={{ fontSize: '0.72rem', color: 'rgba(245,240,232,.35)' }}>{mod.description}</div>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(245,240,232,.4)' }}>$</span>
+                    <input
+                      type="number"
+                      defaultValue={mod.price}
+                      onBlur={e => {
+                        const newPrice = parseInt(e.target.value) || 0
+                        if (newPrice !== mod.price) updatePrice(mod.id, newPrice)
+                      }}
+                      style={{ width: 90, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#C8956A', padding: '6px 8px', fontFamily: 'inherit', fontSize: '0.9rem', borderRadius: 2, outline: 'none', textAlign: 'center' }}
+                    />
+                    {saving === mod.id && <span style={{ fontSize: '0.7rem', color: '#C8956A' }}>...</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button onClick={() => toggleMod(mod.id, !mod.active)}
+                      style={{ background: mod.active ? 'rgba(0,180,80,.1)' : 'rgba(255,255,255,.06)', border: 'none', color: mod.active ? '#00b450' : 'rgba(245,240,232,.4)', padding: '5px 12px', borderRadius: 2, cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}>
+                      {mod.active ? 'Activa' : 'Inactiva'}
+                    </button>
+                    <button onClick={() => deleteMod(mod.id)}
+                      style={{ background: 'rgba(155,34,38,.08)', border: 'none', color: '#ff6b6b', padding: '5px 12px', borderRadius: 2, cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}>
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

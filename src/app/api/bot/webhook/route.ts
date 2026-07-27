@@ -84,7 +84,41 @@ async function processMessage(phone: string, text: string, messageId: string) {
   // Actualizar último mensaje
   await sb.from('bot_conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
 
-  // Cargar config
+  // ─── ✅ Verificar si la conversación está pausada ──────────────────────────
+  const ahora = new Date()
+  if (conv.paused_until && new Date(conv.paused_until) > ahora) {
+    console.log(`Conversación ${conv.id} pausada hasta ${conv.paused_until}. Bot no responde.`)
+    return
+  }
+
+  // ─── ✅ Verificar si el bot está activo ────────────────────────────────────
+  const { data: botActiveConfig } = await sb
+    .from('bot_config')
+    .select('value')
+    .eq('key', 'active')
+    .single()
+
+  const botActivo = botActiveConfig?.value !== false
+
+  if (!botActivo) {
+    // Simplemente ignorar el mensaje, no responder nada
+    console.log(`Bot desactivado. Mensaje de ${phone} ignorado.`)
+    return
+  }
+
+  // ─── ✅ Si el bot estaba desactivado y ahora está activo, reiniciar la conversación
+  if (conv.state === 'bot_desactivado') {
+    await sb.from('bot_conversations').update({
+      state: 'inicio',
+      cart: [],
+      context: {},
+    }).eq('id', conv.id)
+    conv.state = 'inicio'
+    conv.cart = []
+    conv.context = {}
+  }
+
+  // ─── Cargar config ────────────────────────────────────────────────────────
   const { data: configs } = await sb.from('bot_config').select('*')
   const config: Record<string, any> = {}
   configs?.forEach(c => { config[c.key] = c.value })
